@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   id="svg8"
+   version="1.1"
+   viewBox="0 0 210 230"
+   height="230mm"
+   width="210mm">
+  <defs
+     id="defs2" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     transform="translate(0,-67)"
+     id="layer1">
+    <path
+       id="path817"
+       d="m 129.11666,94.176181 v 25.193859 a 75,75 0 0 1 52.63348,71.40918 75,75 0 0 1 -75.00007,75.00007 75,75 0 0 1 -75.000071,-75.00007 75,75 0 0 1 49.741666,-70.51103 V 94.484172 A 100,100 0 0 0 5.8771606,191.28409 100,100 0 0 0 105.87725,291.28419 100,100 0 0 0 205.87735,191.28409 100,100 0 0 0 129.11666,94.176181 Z"
+       style="opacity:1;fill:#000000;fill-opacity:1;stroke:none;stroke-width:3.14960551;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    <rect
+       ry="0"
+       y="74.750031"
+       x="94.720818"
+       height="64.558327"
+       width="21.166666"
+       id="rect828"
+       style="opacity:1;fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.52074718;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    <g
+       style="fill:#d40000"
+       id="g884">
+      <g
+         aria-label="M"
+         transform="scale(0.90664469,1.1029679)"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:119.91944122px;line-height:1.25;font-family:'Trebuchet MS';-inkscape-font-specification:'Trebuchet MS, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#d40000;fill-opacity:1;stroke:none;stroke-width:0.2725423"
+         id="text825">
+        <path
+           d="m 146.63788,214.037 -10.18846,-55.09971 -20.3023,55.1633 v 0 L 95.519875,158.93729 85.565625,214.037 H 74.440286 l 21.278946,-86.29442 v 0 l 20.528908,63.10687 20.32687,-63.10687 v 0 l 21.18821,86.29442 z"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:119.91944122px;font-family:'Trebuchet MS';-inkscape-font-specification:'Trebuchet MS, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.2725423;fill:#d40000"
+           id="path877" />
+      </g>
+      <path
+         style="opacity:1;fill:#d40000;fill-opacity:1;stroke:none;stroke-width:2.66927052;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         d="m 133.34997,228.2085 h 18.09751 l 12.06502,7.9375 h -30.16253 z"
+         id="rect871" />
+      <path
+         style="opacity:1;fill:#d40000;fill-opacity:1;stroke:none;stroke-width:2.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         d="m 47.095832,228.2085 h 29.104157 v 7.9375 H 57.679166 Z"
+         id="rect874" />
+    </g>
+  </g>
+</svg>
