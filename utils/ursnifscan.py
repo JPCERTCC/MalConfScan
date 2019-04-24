@@ -32,9 +32,8 @@ except ImportError:
 ursnif_sig = {
     'namespace1' : 'rule Ursnif { \
                     strings: \
-                       $v1 = "client.dll"\
                        $b1 = "soft=%u&version=%u&user=%08x%08x%08x%08x&server=%u&id=%u&crc=%x" \
-                    condition: $v1 and $b1}'
+                    condition: all of them}'
 }
 
 # Magic pattern

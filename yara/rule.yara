@@ -134,7 +134,6 @@ rule Ursnif {
             hash1 = "0207c06879fb4a2ddaffecc3a6713f2605cbdd90fc238da9845e88ff6aef3f85"
 
           strings:
-            $v1 = "client.dll"
             $b1 = "soft=%u&version=%u&user=%08x%08x%08x%08x&server=%u&id=%u&crc=%x"
 
           condition: all of them
