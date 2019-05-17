@@ -19,6 +19,13 @@ from collections import OrderedDict
 from socket import inet_ntoa
 
 try:
+    from Crypto.Util import asn1
+    from Crypto.PublicKey import RSA
+    has_crypto = True
+except ImportError:
+    has_crypto = False
+
+try:
     import yara
     has_yara = True
 except ImportError:
@@ -55,6 +62,19 @@ class emotetConfig(taskmods.DllList):
                 return vad.Start, vad.End
 
         return None
+
+    def extract_rsakey(self, data):
+        pubkey = ""
+        pemkey_match = re.findall('''\x30[\x00-\xFF]{100}\x02\x03\x01\x00\x01\x00\x00''',data)
+
+        if pemkey_match:
+            pemkey = pemkey_match[0][0:106]
+            seq = asn1.DerSequence()
+            seq.decode(pemkey)
+            pemkey = RSA.construct((seq[0],seq[1]))
+            pubkey = pemkey.exportKey()
+        
+        return pubkey
 
     def calculate(self):
 
@@ -97,6 +117,7 @@ class emotetConfig(taskmods.DllList):
                         except:
                             outfd.write("[!] Not found config data.\n")
 
+                config_data.append({"RSA Public Key" : self.extract_rsakey(data)})
                 config_data.append(p_data)
 
                 yield task, vad_base_addr, end, hit, memory_model, config_data
