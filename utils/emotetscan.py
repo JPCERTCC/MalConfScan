@@ -73,7 +73,7 @@ class emotetConfig(taskmods.DllList):
             seq.decode(pemkey)
             pemkey = RSA.construct((seq[0],seq[1]))
             pubkey = pemkey.exportKey()
-        
+
         return pubkey
 
     def calculate(self):
@@ -106,6 +106,7 @@ class emotetConfig(taskmods.DllList):
                     if mc:
                         try:
                             d = 4
+                            i = 0
                             while 1:
                                 ip = data[mc.start() + d + 3] + data[mc.start() + d + 2] + data[mc.start() + d + 1] + data[mc.start() + d]
                                 port = unpack("=H", data[mc.start() + d + 4:mc.start() + d + 6])[0]
@@ -113,7 +114,7 @@ class emotetConfig(taskmods.DllList):
                                 if ip == "\x00\x00\x00\x00" and port == 0:
                                     break
                                 else:
-                                    p_data[inet_ntoa(ip)] = port
+                                    p_data["IP " + str(i)] = str(inet_ntoa(ip)) + ":" + str(port)
                         except:
                             outfd.write("[!] Not found config data.\n")
 
