@@ -115,6 +115,7 @@ class emotetConfig(taskmods.DllList):
                                     break
                                 else:
                                     p_data["IP " + str(i)] = str(inet_ntoa(ip)) + ":" + str(port)
+                                    i += 1
                         except:
                             outfd.write("[!] Not found config data.\n")
 
