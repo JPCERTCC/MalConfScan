@@ -29,8 +29,8 @@
   - [x] AgentTesla   
   - [x] FormBook
   - [x] NodeRAT (https://blogs.jpcert.or.jp/ja/2019/02/tick-activity.html)
+  - [x] njRAT
   - [ ] Pony
-  - [ ] njRAT
 
 ## Additional Analysis
   MalConfScan has a function to list strings to which malicious code refers. Configuration data is usually encoded by malware. Malware writes decoded configuration data to memory, it may be in memory. This feature may list decoded configuration data.  
@@ -53,4 +53,3 @@ $ python vol.py malstrscan -f images.mem --profile=Win7SP1x64
 
 ## MalConfScan with Cuckoo
   Malware configuration data can be dumped automatically by adding MalConfScan to Cuckoo Sandbox. If you need more details on Cuckoo and MalConfScan integration, please check [MalConfScan with Cuckoo](https://github.com/JPCERTCC/MalConfScan-with-Cuckoo).
-  <!-- MalConfScan with Cuckoo????????? wiki??? -->
