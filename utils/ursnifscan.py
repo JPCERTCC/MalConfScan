@@ -32,8 +32,17 @@ except ImportError:
 ursnif_sig = {
     'namespace1' : 'rule Ursnif { \
                     strings: \
-                       $b1 = "soft=%u&version=%u&user=%08x%08x%08x%08x&server=%u&id=%u&crc=%x" \
-                    condition: all of them}'
+                       $a1 = "soft=%u&version=%u&user=%08x%08x%08x%08x&server=%u&id=%u&crc=%x"\
+                       $b1 = "client.dll" fullword\
+                       $c1 = "version=%u"\
+                       $c2 = "user=%08x%08x%08x%08x"\
+                       $c3 = "server=%u"\
+                       $c4 = "id=%u"\
+                       $c5 = "crc=%u"\
+                       $c6 = "guid=%08x%08x%08x%08x"\
+                       $c7 = "name=%s"\
+                       $c8 = "soft=%u"\
+                    condition: $a1 or ($b1 and 3 of ($c*)) or (5 of ($c*))}'
 }
 
 # Magic pattern
