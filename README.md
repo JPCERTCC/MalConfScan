@@ -30,6 +30,7 @@
   - [x] FormBook
   - [x] NodeRAT (https://blogs.jpcert.or.jp/ja/2019/02/tick-activity.html)
   - [x] njRAT
+  - [x] TrickBot
   - [ ] Pony
 
 ## Additional Analysis
