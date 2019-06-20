@@ -31,6 +31,7 @@
   - [x] NodeRAT (https://blogs.jpcert.or.jp/ja/2019/02/tick-activity.html)
   - [x] njRAT
   - [x] TrickBot
+  - [x] Remcos
   - [ ] Pony
 
 ## Additional Analysis
