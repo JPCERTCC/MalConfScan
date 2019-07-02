@@ -32,6 +32,7 @@
   - [x] njRAT
   - [x] TrickBot
   - [x] Remcos
+  - [x] QuasarRAT
   - [ ] Pony
 
 ## Additional Analysis

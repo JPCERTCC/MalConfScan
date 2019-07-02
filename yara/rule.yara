@@ -460,3 +460,17 @@ rule Remcos {
             $resource = "SETTINGS" wide fullword
           condition:  all of them
 }
+
+rule Quasar {
+          meta:
+            description = "detect Remcos in memory"
+            author = "JPCERT/CC Incident Response Group"
+            rule_usage = "memory scan"
+            hash1 = "390c1530ff62d8f4eddff0ac13bc264cbf4183e7e3d6accf8f721ffc5250e724"
+
+          strings:
+            $quasarstr1 = "[PRIVATE KEY LOCATION: \"{0}\"]" wide
+            $quasarstr2 = "User: {0}{3}Pass: {1}{3}Host: {2}" wide
+            $class = "Core.MouseKeyHook.WinApi" ascii fullword
+          condition: all of them
+}
