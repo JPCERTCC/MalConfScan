@@ -33,7 +33,7 @@ nanocore_sig = {
 }
 
 # Config pattern
-CONFIG_PATTERNS = [re.compile("KeyboardLogging\x00(.)\x0c", re.DOTALL)]
+CONFIG_PATTERNS = [re.compile("Version.\x07(.*?)\x0cMutex", re.DOTALL)]
 
 MODE = {0x0: "Disable", 0x01: "Enable"}
 
@@ -61,7 +61,10 @@ class nanocoreConfig(taskmods.DllList):
         p_data['Domain1']             = re.search('PrimaryConnectionHost\x0c(.*?)Back', data, re.DOTALL).group()[23:-6]
         p_data['Domain2']             = re.search('BackupConnectionHost\x0c(.*?)\x0c', data).group()[22:-1]
         p_data['Port']                = unpack("<H", re.search('ConnectionPort...', data, re.DOTALL).group()[15:])[0]
-        p_data['KeyboardLogging']     = MODE[ord(re.search('KeyboardLogging(.*?)\x0c', data).group()[16:-1])]
+        try:
+            p_data['KeyboardLogging']     = MODE[ord(re.search('KeyboardLogging(.*?)\x0c', data).group()[16:-1])]
+        except:
+            pass
         p_data['RunOnStartup']        = MODE[ord(re.search('RunOnStartup(.*?)\x0c', data).group()[13:-1])]
         p_data['RequestElevation']    = MODE[ord(re.search('RequestElevation(.*?)\x0c', data).group()[17:-1])]
         p_data['BypassUAC']           = MODE[ord(re.search('BypassUserAccountControl(.*?)\x0c', data).group()[25:-1])]
