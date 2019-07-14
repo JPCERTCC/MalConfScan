@@ -3,6 +3,8 @@
 # LICENSE
 # Please refer to the LICENSE.txt in the https://github.com/JPCERTCC/MalConfScan/
 #
+# Created by You Nakatsuru (@you0708)
+#
 # How to use:
 # 1. cd "Volatility Folder"
 # 2. mkdir contrib/plugins/malware
