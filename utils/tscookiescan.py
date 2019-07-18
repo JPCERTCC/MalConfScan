@@ -46,12 +46,13 @@ MZ_HEADER = b"\x4D\x5A\x90\x00"
 CONFIG_PATTERNS = [re.compile("\xC3\x90\x68\x00(...)\xE8(....)\x59\x6A\x01\x58\xC3", re.DOTALL),
                    re.compile("\x6A\x04\x68(....)\x8D(.....)\x56\x50\xE8", re.DOTALL),
                    re.compile("\x68(....)\xE8(....)\x59\x6A\x01\x58\xC3", re.DOTALL),
-                   re.compile("\x68(....)\xE8(....)\x59\xC3", re.DOTALL)]
+                   re.compile("\x68(....)\xE8(....)\x59", re.DOTALL)]
 
-CONNECT_MODE = {0: 'TCP', 1: 'HTTP with Credentials', 2: 'HTTP with Credentials', 3: 'HTTP with Credentials',
-                5: 'HTTP', 6: 'HTTPS', 7: 'HTTPS', 8: 'HTTPS'}
-PROXY_MODE = {0: 'Detect proxy settings', 1: 'Use config'}
-
+CONNECT_MODE   = {0: 'TCP', 1: 'HTTP with Credentials', 2: 'HTTP with Credentials', 3: 'HTTP with Credentials',
+                  5: 'HTTP', 6: 'HTTPS', 7: 'HTTPS', 8: 'HTTPS'}
+PROXY_MODE     = {0: 'Detect proxy settings', 1: 'Use config'}
+INJECTION_MODE = {0 : 'Create process' , 1 : 'Injection running process'}
+PROCESS_NAME   = {0 : 'svchost.exe', 1 : 'iexplorer.exe', 2 : 'explorer.exe', 3 : 'Default browser' , 4: 'Setting process'}
 
 class tscookieConfig(taskmods.DllList):
     """Parse the TSCookie configuration"""
@@ -113,9 +114,13 @@ class tscookieConfig(taskmods.DllList):
         icmp = unpack_from("<H", config, 0x458)[0]
         if icmp == 100:
             p_data["ICMP mode"] = "Enable"
-            p_data["ICMP bind IP"] = unpack_from("<600s", config, 0x4D4)[0]
+            p_data["ICMP bind IP"] = unpack_from("<330s", config, 0x4D4)[0]
         else:
             p_data["ICMP mode"] = "Disable"
+        injection = unpack_from("<H", config, 0x624)[0]
+        p_data["Injection mode"] = INJECTION_MODE[injection]
+        p_data["Injection process name"] = PROCESS_NAME[unpack_from("<H", config, 0x628)[0]]
+        p_data["Injection custom name"] = unpack_from("<256s", config, 0x62c)[0].replace("\0", "")
         if config[0x72c] != "\x00":
             p_data["Proxy server"] = unpack_from("<64s", config, 0x72c)[0]
             p_data["Proxy port"] = unpack_from("<H", config, 0x76c)[0]
