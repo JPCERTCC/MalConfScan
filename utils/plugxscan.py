@@ -665,7 +665,7 @@ class plugxConfig(taskmods.DllList):
                 info_start = data.find('\\work\\')
                 if info_start > 0:
                     info_end = data.find('\\', info_start + 6)
-                    version_info = data[info_start + 6: info_end]
+                    version_info = str(data[info_start + 6: info_end]).decode("utf-8", "replace")
                 else:
                     version_info = "Null"
 
