@@ -14,7 +14,8 @@ import volatility.utils as utils
 import volatility.debug as debug
 import volatility.plugins.malware.malfind as malfind
 import re
-from struct import unpack, unpack_from
+import pefile
+from struct import unpack, unpack_from, pack
 from collections import OrderedDict
 
 try:
@@ -42,11 +43,25 @@ ursnif_sig = {
                        $c6 = "guid=%08x%08x%08x%08x"\
                        $c7 = "name=%s"\
                        $c8 = "soft=%u"\
-                    condition: $a1 or ($b1 and 3 of ($c*)) or (5 of ($c*))}'
+                       $d1 = "%s://%s%s"\
+                       $d2 = "PRI \x2A HTTP/2.0"\
+                    condition: $a1 or ($b1 and 3 of ($c*)) or (5 of ($c*)) or ($b1 and all of ($d*))}'
 }
 
 # Magic pattern
 magic = "J[1J]"
+
+# Config pattern
+CONFIG_PATTERNS = [
+    re.compile("\x3D\xB7\x00\x00\x00\x0F\x84(...)\x00\xA1(....)\xC7(..)(....)\xC6(..)(.)\xC7(.)(....)", re.DOTALL), # cmp eax, 0B7h ; jz loc_xxxx; mov eax, dword_xxxx; mov dword ptr, offset c2_table;
+    re.compile("\x3D\xB7\x00\x00\x00\x0F\x84(....)\x48\x8B\x05(....)\x48\x8D\x0D(....)(\x45\x8D)(..)\x48\x89(..)\x48\x8D\x0D(....)(\x33\xD2)", re.DOTALL), # 64bit
+]
+
+# RSA key pattern
+RSA_PATTERNS = [
+    re.compile("\x68(....)\x8D\x85(....)\x50\xE8(....)\x68(....)\x8D\x85(....)\x50\xE8(....)\x6A\x11", re.DOTALL),
+    re.compile("\x57\x48\x83\xEC\x20\x4C\x8D\x0D(....)(\x4C\x8D)(...)\x48\x8B\xF1", re.DOTALL), # 64bit
+]
 
 DT_STR = 1
 idx_list = {
@@ -109,6 +124,22 @@ class ursnifConfig(taskmods.DllList):
             p_data[field] = data[off:].split("\x00")[0]
 
         return p_data
+
+    def decode_data(self, data, pe, offset):
+        xor_data = unpack("=H", data[offset:offset + 2])[0]
+        xor_data2 = 0xCAFA
+
+        data_len = xor_data ^ unpack("=H", data[offset + 2:offset + 4])[0]
+
+        offset += 4
+        result = ""
+        for i in range(0, data_len, 2):
+            work = xor_data ^ xor_data2 ^ unpack("=H", data[offset + i:offset + 2 + i])[0]
+            xor_data2 = (xor_data2 * (i + 2) ) & 0xffff
+            result += pack("H", (work & 0xffff))
+        result = result[:data_len]
+
+        return result
 
     def calculate(self):
 
@@ -212,6 +243,64 @@ class ursnifConfig(taskmods.DllList):
                         print("[+] dumped: {0}".format(fname))
                 for fname in fnames:
                     parse_joinned_data(fname, magic)
+
+                # Parse static configuration type Ursnif
+                if not config_data:
+                    p_data = OrderedDict()
+                    pe = pefile.PE(data=data)
+                    imagebase = pe.NT_HEADERS.OPTIONAL_HEADER.ImageBase
+                    for pattern in CONFIG_PATTERNS:
+                        m = re.search(pattern, data)
+                        if m:
+                            if pe.FILE_HEADER.Machine in (pefile.MACHINE_TYPE['IMAGE_FILE_MACHINE_IA64'], pefile.MACHINE_TYPE['IMAGE_FILE_MACHINE_AMD64']):
+                                c2_num = unpack("b", data[m.start(7) + 19])[0]
+                            else:
+                                c2_num = unpack("b", data[m.start(6)])[0]
+                            if c2_num >= 16:
+                                c2_num = 1
+                            for i in range(c2_num):
+                                if pe.FILE_HEADER.Machine in (pefile.MACHINE_TYPE['IMAGE_FILE_MACHINE_IA64'], pefile.MACHINE_TYPE['IMAGE_FILE_MACHINE_AMD64']):
+                                    c2_addr = m.start(4) + unpack("=I", data[m.start(3):m.start(3) + 4])[0]
+                                    c2_table_offset = unpack("=Q", data[c2_addr + (8 * i):c2_addr + 8 + (8 * i)])[0] - imagebase
+                                else:
+                                    c2_addr = unpack("=I", data[m.start(4):m.start(4) + 4])[0] - imagebase
+                                    c2_table_offset = unpack("=I", data[c2_addr + (4 * i):c2_addr + 4 + (4 * i)])[0] - imagebase
+
+                                try:
+                                    c2 = self.decode_data(data, pe, c2_table_offset)
+                                except:
+                                    c2 = "Decode fail"
+
+                                p_data["Server " + str(i)] = c2
+
+                            if pe.FILE_HEADER.Machine in (pefile.MACHINE_TYPE['IMAGE_FILE_MACHINE_IA64'], pefile.MACHINE_TYPE['IMAGE_FILE_MACHINE_AMD64']):
+                                serpent_key_offset = m.start(8) + unpack("=I", data[m.start(7):m.start(7) + 4])[0]
+                            else:
+                                serpent_key_offset = unpack("=I", data[m.start(8):m.start(8) + 4])[0] - imagebase
+                            try:
+                                serpent_key = self.decode_data(data, pe, serpent_key_offset)
+                            except:
+                                serpent_key = "Decode fail"
+                            p_data["Serpent key"] = serpent_key
+
+                    for pattern in RSA_PATTERNS:
+                        m = re.search(pattern, data)
+                        if m:
+                            if pe.FILE_HEADER.Machine in (pefile.MACHINE_TYPE['IMAGE_FILE_MACHINE_IA64'], pefile.MACHINE_TYPE['IMAGE_FILE_MACHINE_AMD64']):
+                                rsa_key_offset = m.start(2) + unpack("=I", data[m.start(1):m.start(1) + 4])[0]
+                                rsa_key = data[rsa_key_offset + 4:rsa_key_offset + 0x44]
+
+                                rsa_mod = data[rsa_key_offset + 0x44:rsa_key_offset + 0x84]
+                            else:
+                                rsa_key_offset = unpack("=I", data[m.start(1):m.start(1) + 4])[0] - imagebase
+                                rsa_key = data[rsa_key_offset:rsa_key_offset + 0x40]
+
+                                mod_offset = unpack("=I", data[m.start(4):m.start(4) + 4])[0] - imagebase
+                                rsa_mod = data[mod_offset:mod_offset + 0x40]
+                            p_data["RSA key"] = rsa_key.encode("hex")
+                            p_data["RSA modulus"] = rsa_mod.encode("hex")
+
+                    config_data.append(p_data)
 
                 yield task, vad_base_addr, end, hit, memory_model, config_data
                 break

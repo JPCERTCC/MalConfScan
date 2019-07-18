@@ -146,8 +146,10 @@ rule Ursnif {
             $c6 = "guid=%08x%08x%08x%08x"
             $c7 = "name=%s"
             $c8 = "soft=%u"
+            $d1 = "%s://%s%s"
+            $d2 = "PRI \x2A HTTP/2.0"
 
-          condition: $a1 or ($b1 and 3 of ($c*)) or (5 of ($c*))
+          condition: $a1 or ($b1 and 3 of ($c*)) or (5 of ($c*)) or ($b1 and all of ($d*))
 }
 
 rule Emotet {
