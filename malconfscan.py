@@ -14,6 +14,7 @@ import volatility.plugins.procdump as procdump
 import volatility.plugins.malware.malfind as malfind
 import re
 import os
+import pefile
 from struct import unpack_from
 from collections import OrderedDict
 from importlib import import_module
@@ -119,19 +120,19 @@ class malstrScan(procdump.ProcDump, malfind.Malfind, vadinfo.VADDump):
     def is_valid_profile(profile):
         return (profile.metadata.get('os', 'unknown') == 'windows'), profile.metadata.get('memory_model', '32bit')
 
-    def Disassemble(self, data, start, bits='32bit', stoponret=False):
+    def Disassemble(self, data, start, pe, bits='32bit', stoponret=False):
         if not has_distorm3:
             raise StopIteration
 
-        if bits == '32bit':
+        if bits == "32bit":
             mode = distorm3.Decode32Bits
         else:
             mode = distorm3.Decode64Bits
 
-        for _, _, i, _ in distorm3.DecodeGenerator(start, data, mode):
+        for address, _, code, hex_data in distorm3.DecodeGenerator(start, data, mode):
             if stoponret and i.startswith("RET"):
                 raise StopIteration
-            yield i
+            yield address, code, len(hex_data)/2
 
     def detect_injection_proc(self, proc, space):
         detects = []
@@ -204,27 +205,40 @@ class malstrScan(procdump.ProcDump, malfind.Malfind, vadinfo.VADDump):
 
             for start, end, memdata, protection in self.detect_injection_proc(proc, space):
                 strings = {}
-                for i in self.Disassemble(memdata, start, bits=memory_model):
+
+                pe = pefile.PE(data=memdata)
+                if pe.FILE_HEADER.Machine in (pefile.MACHINE_TYPE['IMAGE_FILE_MACHINE_IA64'], pefile.MACHINE_TYPE['IMAGE_FILE_MACHINE_AMD64']):
+                    mode = "64bit"
+                else:
+                    mode = "32bit"
+
+                for curent_address, i, code_len in self.Disassemble(memdata, start, pe, bits=mode):
                     code = i.split(" ")
                     if code[0] in PATTERNS:
                         for ope in code:
                             if "0x" in ope:
                                 string_addr = int(re.sub("[\],]", "", ope.split("0x")[1]), 16)
-                                string_rva = string_addr - start
+                                if mode == "32bit":
+                                    string_rva = string_addr - start
+                                else:
+                                    string_rva = string_addr + curent_address + code_len - start
+                                if string_rva > 0x1000 and string_rva < (end - start):
+                                    if mode == "32bit":
+                                        offset = unpack_from("<H", memdata, string_rva)[0]
+                                    else:
+                                        offset = unpack_from("<Q", memdata, string_rva)[0]
 
-                                if string_rva > 0x400 and string_addr < end:
-                                    offset = unpack_from("<H", memdata, string_rva)[0]
                                     if offset > start and offset < end:
-                                        string_data = self.search_strings(offset, memdata)
+                                        string_data = self.search_strings(offset - start, memdata)
                                         string = str("".join(string_data)).replace("\n", " ").replace("\r", " ")
-                                        if len(string) > 1:
+                                        if len(string) > 1 and string != "\x00\x00":
                                             strings[offset] = string
                                             # print("0x{0:0>8X} -> 0x{1:0>8X}: {2}".format(string_addr, offset, string))
                                     else:
                                         string_data = self.search_strings(string_rva, memdata)
                                         string = str("".join(string_data)).replace("\n", " ").replace("\r", " ")
-                                        if len(string) > 1:
-                                            strings[string_addr] = string
+                                        if len(string) > 1 and string != "\x00\x00":
+                                            strings[string_rva + start] = string
                                             # print("0x{0:0>8X}: {1}".format(string_addr, string))
 
                 levels = {}
@@ -237,7 +251,7 @@ class malstrScan(procdump.ProcDump, malfind.Malfind, vadinfo.VADDump):
                             elif vad.Parent.obj_offset in levels:
                                 level = levels.get(vad.Parent.obj_offset, -1) + 1
                                 levels[vad.obj_offset] = level
-                                if vad.Start > 0x70000000:
+                                if vad.Start > 0x70000000 and mode == "32bit":
                                     break
                                 data = space.zread(vad.Start, vad.End - vad.Start)
                                 for addr, word in self.get_strings(data):
