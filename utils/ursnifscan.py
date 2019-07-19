@@ -141,6 +141,88 @@ class ursnifConfig(taskmods.DllList):
 
         return result
 
+    def parse_joinned_data(self, data):
+        mz_magic = unpack_from("=2s", data, 0x0)[0]
+        nt_magic = unpack_from("<H", data, 0x3c)[0]
+
+        if mz_magic == "\x00\x00":
+            data = "\x4d\x5a" + data[2:]
+            data = data[:nt_magic] + "\x50\x45" + data[nt_magic + 2:]
+
+        config_data = []
+        fnames = []
+        for m in re.finditer(magic + "\x00.", data):
+            xor_dword = 0
+            magic_dword = data[m.start():m.start() + 4]
+            if (magic_dword[0:1] == "J1" or magic_dword[3] == "\0"):
+                (flags, crc32_name, addr, size) = unpack_from("<LLLL", data, m.start() + 4)
+                print("[+] magic: {0} flags: 0x{1:X} crc32_name: 0x{2:X} addr: 0x{3:X} size: 0x{4:X}\n".format(
+                    repr(magic_dword), flags, crc32_name, addr, size))
+            elif (magic_dword[0:1] == "JJ" or (ord(magic_dword[3]) & 1) == 1):
+                (xor_dword, crc32_name, addr, size) = unpack_from("<LLLL", data, m.start() + 4)
+                print("[+] magic: {0} xor: 0x{1:X} crc32_name: 0x{2:X} addr: 0x{3:X} size: 0x{4:X}\n".format(
+                    repr(magic_dword), xor_dword, crc32_name, addr, size))
+            else:
+                break
+
+            if size > 0x80000:
+                print("[!] size is too large, skipped this entry\n")
+                continue
+
+            try:
+                offset = addr
+            except:
+                print("[!] This PE is old Ursnif (not DreamBot)\n")
+                (addr, size, crc32_name, flags) = unpack_from(
+                    "<LLLL", data, m.start() + 4)
+                print("[+] magic: {0} addr: 0x{1:X} size: 0x{2:X} crc32_name: 0x{3:X} flags: 0x{4:X}\n".format(
+                    repr(magic_dword), addr, size, crc32_name, flags))
+                offset = addr
+            joined_res = data[offset:offset + size]
+            try:
+                dec_data = aplib.decompress(joined_res).do()[0]
+            except:
+                print("[!] Cann't decode data.\n")
+                continue
+
+            if (xor_dword != 0):
+                mod_data = ""
+                for i in range(min(4, size + 1)):
+                    mod_data += chr(ord(dec_data[i]) ^ ((xor_dword >> 8 * i) & 0xff))
+                if (size >= 4):
+                    mod_data += dec_data[4:]
+                dec_data = mod_data
+
+            if crc32_name in (0x4f75cea7, 0x9e154a0c):
+                fname = "ursnif_client32.bin"
+                open(fname, "wb").write(dec_data)
+                print("[+] dumped 32 bit client dll: {0}\n".format(fname))
+                fnames.append(dec_data)
+            elif crc32_name in (0x90f8aab4, 0x41982e1f):
+                fname = "ursnif_client64.bin"
+                open(fname, "wb").write(dec_data)
+                print("[+] dumped 64 bit client dll: {0}\n".format(fname))
+                # fnames.append(fname)
+
+            elif crc32_name in (0xe1285e64,):
+                fname = "ursnif_public_key.bin"
+                open(fname, "wb").write(dec_data)
+                print("[+] dumped public key: {0}\n".format(fname))
+            elif crc32_name in (0xd722afcb, 0x8365b957, 0x8fb1dde1):
+                fname = "ursnif_st_config.bin"
+                open(fname, "wb").write(dec_data)
+                print("[+] dumped static config: {0}\n".format(fname))
+                config_data.append(self.parse_config(dec_data))
+            else:
+                fname = "ursnif_" + hex(addr) + "_ap32_dec.bin"
+                open(fname, "wb").write(dec_data)
+                print("[+] dumped: {0}".format(fname))
+
+        for fname in fnames:
+            config_data = self.parse_joinned_data(fname)
+
+        return config_data
+
     def calculate(self):
 
         if not has_yara:
@@ -168,81 +250,8 @@ class ursnifConfig(taskmods.DllList):
 
                 config_data = []
 
-                mz_magic = unpack_from("=2s", data, 0x0)[0]
-                nt_magic = unpack_from("<H", data, 0x3c)[0]
-
-                if mz_magic == "\x00\x00":
-                    data = "\x4d\x5a" + data[2:]
-                    data = data[:nt_magic] + "\x50\x45" + data[nt_magic + 2:]
-                fnames = []
-                for m in re.finditer(magic + "\x00.", data):
-                    xor_dword = 0
-                    magic_dword = data[m.start():m.start() + 4]
-                    if (magic_dword[0:1] == "J1" or magic_dword[3] == "\0"):
-                        (flags, crc32_name, addr, size) = unpack_from("<LLLL", data, m.start() + 4)
-                        print("[+] magic: {0} flags: 0x{1:X} crc32_name: 0x{2:X} addr: 0x{3:X} size: 0x{4:X}\n".format(
-                            repr(magic_dword), flags, crc32_name, addr, size))
-                    elif (magic_dword[0:1] == "JJ" or (ord(magic_dword[3]) & 1) == 1):
-                        (xor_dword, crc32_name, addr, size) = unpack_from("<LLLL", data, m.start() + 4)
-                        print("[+] magic: {0} xor: 0x{1:X} crc32_name: 0x{2:X} addr: 0x{3:X} size: 0x{4:X}\n".format(
-                            repr(magic_dword), xor_dword, crc32_name, addr, size))
-                    else:
-                        raise ValueError("Unknown joiner header")
-
-                    if size > 0x80000:
-                        print("[!] size is too large, skipped this entry\n")
-                        continue
-
-                    try:
-                        offset = addr
-                    except:
-                        print("[!] This PE is old Ursnif (not DreamBot)\n")
-                        (addr, size, crc32_name, flags) = unpack_from(
-                            "<LLLL", data, m.start() + 4)
-                        print("[+] magic: {0} addr: 0x{1:X} size: 0x{2:X} crc32_name: 0x{3:X} flags: 0x{4:X}\n".format(
-                            repr(magic_dword), addr, size, crc32_name, flags))
-                        offset = addr
-                    joined_res = data[offset:offset + size]
-                    try:
-                        dec_data = aplib.decompress(joined_res).do()[0]
-                    except:
-                        print("[!] Cann't decode data.\n")
-                        continue
-
-                    if (xor_dword != 0):
-                        mod_data = ""
-                        for i in range(min(4, size + 1)):
-                            mod_data += chr(ord(dec_data[i]) ^ ((xor_dword >> 8 * i) & 0xff))
-                        if (size >= 4):
-                            mod_data += dec_data[4:]
-                        dec_data = mod_data
-
-                    if crc32_name in (0x4f75cea7, 0x9e154a0c):
-                        fname = "ursnif_client32.bin"
-                        open(fname, "wb").write(dec_data)
-                        print("[+] dumped 32 bit client dll: {0}\n".format(fname))
-                        fnames.append(fname)
-                    elif crc32_name in (0x90f8aab4, 0x41982e1f):
-                        fname = "ursnif_client64.bin"
-                        open(fname, "wb").write(dec_data)
-                        print("[+] dumped 64 bit client dll: {0}\n".format(fname))
-                        # fnames.append(fname)
-
-                    elif crc32_name in (0xe1285e64,):
-                        fname = "ursnif_public_key.bin"
-                        open(fname, "wb").write(dec_data)
-                        print("[+] dumped public key: {0}\n".format(fname))
-                    elif crc32_name in (0xd722afcb, 0x8365b957, 0x8fb1dde1):
-                        fname = "ursnif_st_config.bin"
-                        open(fname, "wb").write(dec_data)
-                        print("[+] dumped static config: {0}\n".format(fname))
-                        config_data.append(self.parse_config(dec_data))
-                    else:
-                        fname = "ursnif_" + hex(addr) + "_ap32_dec.bin"
-                        open(fname, "wb").write(dec_data)
-                        print("[+] dumped: {0}".format(fname))
-                for fname in fnames:
-                    parse_joinned_data(fname, magic)
+                # Parse standard Ursnif
+                config_data = self.parse_joinned_data(data)
 
                 # Parse static configuration type Ursnif
                 if not config_data:
