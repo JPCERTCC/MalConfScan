@@ -141,13 +141,18 @@ class ursnifConfig(taskmods.DllList):
 
         return result
 
-    def parse_joinned_data(self, data):
+    def pe_magic_check(self, data):
         mz_magic = unpack_from("=2s", data, 0x0)[0]
         nt_magic = unpack_from("<H", data, 0x3c)[0]
 
         if mz_magic == "\x00\x00":
             data = "\x4d\x5a" + data[2:]
             data = data[:nt_magic] + "\x50\x45" + data[nt_magic + 2:]
+
+        return data
+
+    def parse_joinned_data(self, data):
+        data = self.pe_magic_check(data)
 
         config_data = []
         fnames = []
@@ -256,6 +261,7 @@ class ursnifConfig(taskmods.DllList):
                 # Parse static configuration type Ursnif
                 if not config_data:
                     p_data = OrderedDict()
+                    data = self.pe_magic_check(data)
                     pe = pefile.PE(data=data)
                     imagebase = pe.NT_HEADERS.OPTIONAL_HEADER.ImageBase
                     for pattern in CONFIG_PATTERNS:
