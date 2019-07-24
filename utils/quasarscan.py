@@ -96,7 +96,10 @@ class quasarConfig(taskmods.DllList):
 
         for i, config in enumerate(configs):
             if i not in [2, 3, 8]:
-                config = self.decrypt_string(aes_key, b64decode(config))
+                try:
+                    config = self.decrypt_string(aes_key, b64decode(config))
+                except:
+                    pass
             p_data[idx_list[i]] = config
 
         return p_data
