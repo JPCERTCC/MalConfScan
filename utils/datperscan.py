@@ -14,7 +14,6 @@ import volatility.utils as utils
 import volatility.debug as debug
 import volatility.plugins.malware.malfind as malfind
 import re
-import sys
 import pefile
 from struct import unpack, unpack_from
 from collections import OrderedDict
@@ -221,7 +220,8 @@ class datperConfig(taskmods.DllList):
                 try:
                     pe = pefile.PE(data=data)
                 except:
-                    sys.exit("[!] could not parse as a PE file")
+                    # print("[!] could not parse as a PE file")
+                    break
 
                 config_size = CONFSIZE
 
