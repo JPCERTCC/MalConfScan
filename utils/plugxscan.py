@@ -35,7 +35,11 @@ plugx_sig = {
                        $v2f = { 68 24 0D 00 00 } \
                        $v2g = { 68 a0 02 00 00 } \
                        $v2h = { 68 e4 0a 00 00 } \
-                    condition: $v1 at 0 or ($v2a and $v2b) or ($v2c and $v2b) or ($v2d and $v2b) or ($v2d and $v2e) or ($v2f and $v2g) or ($v2h and $v2g)}'
+                       $enc1 = { C1 E? 03 C1 E? 07 2B ?? } \
+                       $enc2 = { 32 5? ?? 81 E? ?? ?? 00 00 2A 5? ?? 89 ?? ?? 32 ?? 2A ?? 32 5? ?? 2A 5? ?? 32 } \
+                       $enc3 = { B? 33 33 33 33} \
+                       $enc4 = { B? 44 44 44 44} \
+                    condition: $v1 at 0 or ($v2a and $v2b and $enc1) or ($v2c and $v2b and $enc1) or ($v2d and $v2b and $enc2) or ($v2d and $v2e and $enc2) or ($v2f and $v2g and $enc3 and $enc4) or ($v2h and $v2g and $enc3 and $enc4)}'
 }
 
 FLAG_ENABLE        = 0xFFFFFFFF
