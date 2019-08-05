@@ -45,6 +45,7 @@ MZ_HEADER = b"\x4D\x5A\x90\x00"
 # Config pattern
 CONFIG_PATTERNS = [re.compile("\xC3\x90\x68\x00(...)\xE8(....)\x59\x6A\x01\x58\xC3", re.DOTALL),
                    re.compile("\x6A\x04\x68(....)\x8D(.....)\x56\x50\xE8", re.DOTALL),
+                   re.compile("\x00\x00\x68(....)\xE8(....)\x59\x59\x6A\x01", re.DOTALL),
                    re.compile("\x68(....)\xE8(....)\x59\x6A\x01\x58\xC3", re.DOTALL),
                    re.compile("\x68(....)\xE8(....)\x59", re.DOTALL)]
 
@@ -96,7 +97,7 @@ class tscookieConfig(taskmods.DllList):
             p_data["Proxy server"] = unpack_from("<128s", config, 0x400)[0].replace("\0", "")
             p_data["Proxy port"] = unpack_from("<H", config, 0x480)[0]
         p_data["ID"] = unpack_from("<256s", config, 0x500)[0]
-        p_data["KEY"] = unpack_from(">I", config, 0x604)[0]
+        p_data["KEY"] = "0x{0:X}".format(unpack_from(">I", config, 0x604)[0])
         if len(config) > 0x89C:
             p_data["Sleep time"] = unpack_from("<H", config, 0x89C)[0]
 
@@ -105,7 +106,7 @@ class tscookieConfig(taskmods.DllList):
     def parse_loader_config(self, config):
         p_data = OrderedDict()
         p_data["Server name"] = unpack_from("<1024s", config, 0)[0]
-        p_data["KEY"] = unpack_from(">I", config, 0x400)[0]
+        p_data["KEY"] = "0x{0:X}".format(unpack_from(">I", config, 0x400)[0])
         p_data["Sleep count"] = unpack_from("<H", config, 0x404)[0]
         p_data["Mutex"] = unpack_from("<32s", config, 0x40c)[0]
         mode = unpack_from("<H", config, 0x44c)[0]
