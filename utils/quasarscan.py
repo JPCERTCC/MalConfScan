@@ -38,9 +38,9 @@ except ImportError:
 quasar_sig = {
     'namespace1' : 'rule Quasar { \
                     strings: \
-                       $quasarstr1 = "[PRIVATE KEY LOCATION: \\"{0}\\"]" wide \
-                       $quasarstr2 = "User: {0}{3}Pass: {1}{3}Host: {2}" wide \
-                       $quasarstr3 = "Core.MouseKeyHook.WinApi" ascii fullword \
+                       $quasarstr1 = "Client.exe" wide \
+                       $quasarstr2 = "({0}:{1}:{2})" wide \
+                       $quasarstr3 = { 52 00 65 00 73 00 6F 00 75 00 72 00 63 00 65 00 73 00 00 17 69 00 6E 00 66 00 6F 00 72 00 6D 00 61 00 74 00 69 00 6F 00 6E 00 00 80 } \
                     condition: all of them}'
 }
 
@@ -59,6 +59,8 @@ idx_list = {
     8:  "ENCRYPTIONKEY",
     9:  "TAG",
     10: "LOGDIRECTORYNAME",
+    11: "unknown1",
+    12: "unknown2"
 }
 
 
@@ -76,31 +78,33 @@ class quasarConfig(taskmods.DllList):
 
         return None
 
-    def decrypt_string(self, key, coded):
-        mode = AES.MODE_CBC
-        if len(coded) < 48:
-            value = ""
-        else:
-            aes_iv = coded[32:48]
-            cipher = AES.new(key, mode, IV=aes_iv)
-            value = cipher.decrypt(coded[48:]).replace('\x00', '').replace('\x0a', '').replace('\x0b', '')
+    def decrypt_string(self, key, configs, mode):
+        p_data = OrderedDict()
+        for i, config in enumerate(configs):
+            if i not in [2, 3, 8]:
+                if len(b64decode(config)) < 48:
+                    value = config
+                else:
+                    config = b64decode(config)
+                    aes_iv = config[32:48]
+                    cipher = AES.new(key, mode, IV=aes_iv)
+                    value = re.sub("[\x00-\x19]" ,"" , cipher.decrypt(config[48:]))
+            else:
+                value = config
+            p_data[idx_list[i]] = value
 
-        return value
+        return p_data
 
     def parse_config(self, configs):
-        i = 0
-        p_data = OrderedDict()
         key, salt = configs[8], 'BFEB1E56FBCD973BB219022430A57843003D5644D21E62B9D4F180E7E6C33941'.decode('hex')
         generator = PBKDF2(key, salt, 50000)
         aes_key = generator.read(16)
 
-        for i, config in enumerate(configs):
-            if i not in [2, 3, 8]:
-                try:
-                    config = self.decrypt_string(aes_key, b64decode(config))
-                except:
-                    pass
-            p_data[idx_list[i]] = config
+        if(len(configs) > 12):
+            mode = AES.MODE_CFB
+        else:
+            mode = AES.MODE_CBC
+        p_data = self.decrypt_string(aes_key, configs, mode)
 
         return p_data
 
@@ -148,13 +152,15 @@ class quasarConfig(taskmods.DllList):
                         if ord(data[offset]) == 0x80 or ord(data[offset]) == 0x81:
                             string_len = ord(data[offset + 1]) + ((ord(data[offset]) - 0x80) * 256)
                             offset += 1
+
                         offset += 1
                         for i in range(string_len):
                             if data[offset + i] != "\x00":
                                 strings.append(data[offset + i])
                         configs.append("".join(strings))
                         offset = offset + string_len
-                        if len(configs) > 10:
+
+                        if ord(data[offset]) < 0x20:
                             break
 
                 config_data.append(self.parse_config(configs))
