@@ -49,7 +49,7 @@ CONF_PATTERNS = [{
 }]
 
 BEACONTYPE = {0x0: "0 (HTTP)", 0x1: "1 (Hybrid HTTP and DNS)", 0x8: "8 (HTTPS)"}
-ACCESSTYPE = {0x1: "1 (use direct connection)", 0x2: "2 (use IE settings)", 0x4: "4 (use proxy server)"}
+ACCESSTYPE = {0x0: "0 (not use)", 0x1: "1 (use direct connection)", 0x2: "2 (use IE settings)", 0x4: "4 (use proxy server)"}
 
 
 class cobaltstrikeConfig(taskmods.DllList):
