@@ -1,5 +1,7 @@
 <div align="center"><img src="images/title.svg" width="800"></div>
 
+  [![Arsenal](https://rawgit.com/toolswatch/badges/master/arsenal/usa/2019.svg)](http://www.toolswatch.org/2019/05/amazing-black-hat-arsenal-usa-2019-lineup-announced/)   
+
 ## Concept
  　**MalConfScan** is a [Volatility](https://github.com/volatilityfoundation/volatility) plugin extracts configuration data of known malware. Volatility is an open-source memory forensics framework for incident response and malware analysis. This tool searches for malware in memory images and dumps configuration data. In addition, this tool has a function to list strings to which malicious code refers.  
 
