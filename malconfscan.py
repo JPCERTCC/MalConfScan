@@ -73,6 +73,8 @@ class malconfScan(taskmods.DllList):
                     malname = "redleaves"
                 if str(hit) in "TSC_Loader":
                     malname = "tscookie"
+                if "Agenttesla" in str(hit):
+                    malname = "agenttesla"
 
                 try:
                     module = import_module("volatility.plugins.malware.utils.{name}scan".format(name=malname))

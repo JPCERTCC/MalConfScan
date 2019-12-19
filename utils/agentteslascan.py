@@ -30,11 +30,17 @@ except ImportError:
     has_crypto = False
 
 agenttesla_sig = {
-    'namespace1' : 'rule Agenttesla { \
+    'namespace1' : 'rule Agenttesla_type1 { \
                     strings: \
-                       $iestr = "C:\\\\Users\\\\Admin\\\\Desktop\\\\IELibrary\\\\IELibrary\\\\obj\\\\Debug\\\\IELibrary.pdb" \
-                       $atstr = "C:\\\\Users\\\\Admin\\\\Desktop\\\\ConsoleApp1\\\\ConsoleApp1\\\\obj\\\\Debug\\\\ConsoleApp1.pdb" \
-                       $sqlitestr = "Not a valid SQLite 3 Database File" wide \
+                       $type1ie = "C:\\\\Users\\\\Admin\\\\Desktop\\\\IELibrary\\\\IELibrary\\\\obj\\\\Debug\\\\IELibrary.pdb" \
+                       $type1at = "C:\\\\Users\\\\Admin\\\\Desktop\\\\ConsoleApp1\\\\ConsoleApp1\\\\obj\\\\Debug\\\\ConsoleApp1.pdb" \
+                       $type1sql = "Not a valid SQLite 3 Database File" wide \
+                    condition:  all of them}',
+    'namespace2' : 'rule Agenttesla_type2 { \
+                    strings: \
+                       $type2db1 = "1.85 (Hash, version 2, native byte-order)" wide \
+                       $type2db2 = "Unknow database format" wide \
+                       $type2db3 = "SQLite format 3" wide \
                     condition: all of them}'
 }
 
@@ -59,14 +65,50 @@ class agentteslaConfig(taskmods.DllList):
 
         return None
 
-    def strings(self, data, n=18):
+    def base64strings(self, data, n=18):
         for match in re.finditer(("(([0-9a-z-A-Z\+/]\x00){%s}([0-9a-z-A-Z\+/]\x00)*(=\x00){0,2})" % n).encode(), data):
             yield match.group(0)
 
-    def stringdecrypt(self, a):
+    def remove_unascii(self, b):
+        cleaned = ""
+        for i in b:
+            if ord(i) >= 0x20 and ord(i) < 0x7f:
+                cleaned += i
+        return cleaned
+
+    def stringdecrypt_type1(self, a):
         string = b64decode(a)
         cleartext = AES.new(KEY[0:32], AES.MODE_CBC, IV).decrypt(string)
         return cleartext
+
+    def stringdecrypt_type2(self, data):
+        encdata = data[0x2050:]
+
+        dlist = OrderedDict()
+        offset = 0
+        num = 0
+        i = 16
+        while True:
+            key = encdata[offset:offset + 32]
+            iv = encdata[offset + 32:offset + 48]
+            enc_data =encdata[offset + 48:offset + 48 + i]
+
+            if b"\x00\x00" in key and b"\x00\x00" in iv:
+                break
+
+            try:
+                cleartext = AES.new(key, AES.MODE_CBC, iv).decrypt(enc_data)
+                if len(cleartext) and (ord(cleartext[-1]) <= 0x10 or self.remove_unascii(cleartext) % 16 == 0) and not (ord(cleartext[-2]) == 0x0d and ord(cleartext[-1]) == 0x0a):
+                    dlist["Encoded string " + str(num)] = self.remove_unascii(cleartext).rstrip()
+                    offset = offset + 48 + i
+                    num += 1
+                    i = 0
+                else:
+                    i += 16
+            except:
+                i += 16
+
+        return dlist
 
     def calculate(self):
 
@@ -94,14 +136,18 @@ class agentteslaConfig(taskmods.DllList):
                 data = proc_addr_space.zread(vad_base_addr, end - vad_base_addr)
 
                 config_data = []
-                dlist = {}
-                for word in self.strings(data):
-                    try:
-                        dec = self.stringdecrypt(word)
-                        dec = re.sub("([\x00,\x01,\x02,\x03,\x04,\x05,\x06,\x07,\x08,\x09,\x0a,\x0b,\x0c,\x0d,\x0e,\x0f,\x10]{1})", "\x00", dec)
-                        dlist[word.strip().replace('\0', '')] = dec.strip().replace("\n", "").replace("\r", "")
-                    except:
-                        pass
+                dlist = OrderedDict()
+                if "type1" in str(hit):
+                    for word in self.base64strings(data):
+                        try:
+                            dec = self.stringdecrypt_type1(word)
+                            dec = self.remove_unascii(dec).rstrip()
+                            dlist[word.strip().replace('\0', '')] = dec
+                        except:
+                            pass
+
+                if "type2" in str(hit):
+                    dlist = self.stringdecrypt_type2(data)
 
                 config_data.append(dlist)
 
