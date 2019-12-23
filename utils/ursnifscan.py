@@ -45,7 +45,12 @@ ursnif_sig = {
                        $c8 = "soft=%u"\
                        $d1 = "%s://%s%s"\
                        $d2 = "PRI \x2A HTTP/2.0"\
-                    condition: $a1 or ($b1 and 3 of ($c*)) or (5 of ($c*)) or ($b1 and all of ($d*))}'
+                       $e1 = { A1 ?? ?? ?? 00 35 E7 F7 8A 40 50 }\
+                       $e2 = { 56 56 56 6A 06 5? FF ?? ?? ?? ?? 00 }\
+                       $f1 = { 56 57 BE ?? ?? ?? ?? 8D ?? ?? A5 A5 A5 }\
+                       $f2 = { 35 8F E3 B7 3F }\
+                       $f3 = { 35 0A 60 2E 51 }\
+                    condition: $a1 or ($b1 and 3 of ($c*)) or (5 of ($c*)) or ($b1 and all of ($d*)) or all of ($e*) or all of ($f*)}'
 }
 
 # Magic pattern
@@ -74,7 +79,7 @@ idx_list = {
     0x510f22d2: ["c2_tor_domain", DT_STR],
     0x556aed8f: ["server", DT_STR],
     0x584e5925: ["SetWaitableTimer_value", DT_STR],
-    0x602c2c26: ["capture_window_title?(CRC_KEYLOGLIST)"],
+    0x602c2c26: ["capture_window_title?(CRC_KEYLOGLIST)", DT_STR],
     0x656b798a: ["botnet", DT_STR],
     0x6de85128: ["not_use(CRC_BCTIMEOUT)", DT_STR],
     0x73177345: ["dga_base_url", DT_STR],
@@ -161,34 +166,39 @@ class ursnifConfig(taskmods.DllList):
             magic_dword = data[m.start():m.start() + 4]
             if (magic_dword[0:1] == "J1" or magic_dword[3] == "\0"):
                 (flags, crc32_name, addr, size) = unpack_from("<LLLL", data, m.start() + 4)
-                print("[+] magic: {0} flags: 0x{1:X} crc32_name: 0x{2:X} addr: 0x{3:X} size: 0x{4:X}\n".format(
+                print("[+] magic: {0} flags: 0x{1:X} crc32_name: 0x{2:X} addr: 0x{3:X} size: 0x{4:X}".format(
                     repr(magic_dword), flags, crc32_name, addr, size))
             elif (magic_dword[0:1] == "JJ" or (ord(magic_dword[3]) & 1) == 1):
                 (xor_dword, crc32_name, addr, size) = unpack_from("<LLLL", data, m.start() + 4)
-                print("[+] magic: {0} xor: 0x{1:X} crc32_name: 0x{2:X} addr: 0x{3:X} size: 0x{4:X}\n".format(
+                print("[+] magic: {0} xor: 0x{1:X} crc32_name: 0x{2:X} addr: 0x{3:X} size: 0x{4:X}".format(
                     repr(magic_dword), xor_dword, crc32_name, addr, size))
             else:
                 break
 
             if size > 0x80000:
-                print("[!] size is too large, skipped this entry\n")
+                print("[!] size is too large, skipped this entry")
                 continue
 
             try:
                 offset = addr
             except:
-                print("[!] This PE is old Ursnif (not DreamBot)\n")
+                print("[!] This PE is old Ursnif (not DreamBot)")
                 (addr, size, crc32_name, flags) = unpack_from(
                     "<LLLL", data, m.start() + 4)
-                print("[+] magic: {0} addr: 0x{1:X} size: 0x{2:X} crc32_name: 0x{3:X} flags: 0x{4:X}\n".format(
+                print("[+] magic: {0} addr: 0x{1:X} size: 0x{2:X} crc32_name: 0x{3:X} flags: 0x{4:X}".format(
                     repr(magic_dword), addr, size, crc32_name, flags))
                 offset = addr
-            joined_res = data[offset:offset + size]
+
             try:
+                joined_res = data[offset:offset + size]
                 dec_data = aplib.decompress(joined_res).do()[0]
             except:
-                print("[!] Cann't decode data.\n")
-                continue
+                pe = pefile.PE(data=data)
+                offset = pe.get_offset_from_rva(addr)
+                joined_res = data[offset:offset + size]
+                dec_data = aplib.decompress(joined_res).do()[0]
+                #print("[!] Cann't decode data.")
+                #continue
 
             if (xor_dword != 0):
                 mod_data = ""
@@ -201,22 +211,22 @@ class ursnifConfig(taskmods.DllList):
             if crc32_name in (0x4f75cea7, 0x9e154a0c):
                 fname = "ursnif_client32.bin"
                 open(fname, "wb").write(dec_data)
-                print("[+] dumped 32 bit client dll: {0}\n".format(fname))
+                print("[+] dumped 32 bit client dll: {0}".format(fname))
                 fnames.append(dec_data)
             elif crc32_name in (0x90f8aab4, 0x41982e1f):
                 fname = "ursnif_client64.bin"
                 open(fname, "wb").write(dec_data)
-                print("[+] dumped 64 bit client dll: {0}\n".format(fname))
+                print("[+] dumped 64 bit client dll: {0}".format(fname))
                 # fnames.append(fname)
 
             elif crc32_name in (0xe1285e64,):
                 fname = "ursnif_public_key.bin"
                 open(fname, "wb").write(dec_data)
-                print("[+] dumped public key: {0}\n".format(fname))
+                print("[+] dumped public key: {0}".format(fname))
             elif crc32_name in (0xd722afcb, 0x8365b957, 0x8fb1dde1):
                 fname = "ursnif_st_config.bin"
                 open(fname, "wb").write(dec_data)
-                print("[+] dumped static config: {0}\n".format(fname))
+                print("[+] dumped static config: {0}".format(fname))
                 config_data.append(self.parse_config(dec_data))
             else:
                 fname = "ursnif_" + hex(addr) + "_ap32_dec.bin"
@@ -262,7 +272,10 @@ class ursnifConfig(taskmods.DllList):
                 if not config_data:
                     p_data = OrderedDict()
                     data = self.pe_magic_check(data)
-                    pe = pefile.PE(data=data)
+                    try:
+                        pe = pefile.PE(data=data)
+                    except:
+                        continue
                     imagebase = pe.NT_HEADERS.OPTIONAL_HEADER.ImageBase
                     for pattern in CONFIG_PATTERNS:
                         m = re.search(pattern, data)

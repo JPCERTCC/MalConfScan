@@ -148,8 +148,13 @@ rule Ursnif {
             $c8 = "soft=%u"
             $d1 = "%s://%s%s"
             $d2 = "PRI \x2A HTTP/2.0"
+            $e1 = { A1 ?? ?? ?? 00 35 E7 F7 8A 40 50 }
+            $e2 = { 56 56 56 6A 06 5? FF ?? ?? ?? ?? 00 }
+            $f1 = { 56 57 BE ?? ?? ?? ?? 8D ?? ?? A5 A5 A5 }
+            $f2 = { 35 8F E3 B7 3F }
+            $f3 = { 35 0A 60 2E 51 }
 
-          condition: $a1 or ($b1 and 3 of ($c*)) or (5 of ($c*)) or ($b1 and all of ($d*))
+         condition: $a1 or ($b1 and 3 of ($c*)) or (5 of ($c*)) or ($b1 and all of ($d*)) or all of ($e*) or all of ($f*)
 }
 
 rule Emotet {
