@@ -419,7 +419,8 @@ rule Agenttesla_type2 {
             $type2db1 = "1.85 (Hash, version 2, native byte-order)" wide
             $type2db2 = "Unknow database format" wide
             $type2db3 = "SQLite format 3" wide
-          condition: all of them
+            $type2db4 = "Berkelet DB" wide
+          condition: 3 of them
 }
 
 rule Noderat {
@@ -488,7 +489,7 @@ rule Remcos {
 
 rule Quasar {
           meta:
-            description = "detect Remcos in memory"
+            description = "detect QuasarRAT in memory"
             author = "JPCERT/CC Incident Response Group"
             rule_usage = "memory scan"
             hash1 = "390c1530ff62d8f4eddff0ac13bc264cbf4183e7e3d6accf8f721ffc5250e724"

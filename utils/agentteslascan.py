@@ -41,7 +41,8 @@ agenttesla_sig = {
                        $type2db1 = "1.85 (Hash, version 2, native byte-order)" wide \
                        $type2db2 = "Unknow database format" wide \
                        $type2db3 = "SQLite format 3" wide \
-                    condition: all of them}'
+                       $type2db4 = "Berkelet DB" wide \
+                    condition: 3 of them}'
 }
 
 # IV
