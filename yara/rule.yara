@@ -169,8 +169,9 @@ rule Emotet {
             $v4b = { B8 00 C3 CC 84 }
             $v5a = { 69 01 6D 4E C6 41 05 39 30 00 00 }
             $v5b = { 6D 4E C6 41 33 D2 81 C1 39 30 00 00 }
+            $v6a = { C7 40 20 ?? ?? ?? 00 C7 40 10 ?? ?? ?? 00 C7 40 0C 00 00 00 00 83 3C CD ?? ?? ?? ?? 00 74 0E 41 89 48 ?? 83 3C CD ?? ?? ?? ?? 00 75 F2 }
 
-          condition: ($v4a and $v4b) or $v5a or $v5b
+          condition: all of ($v4*) or $v5a or $v5b or $v6a
 }
 
 rule SmokeLoader {
