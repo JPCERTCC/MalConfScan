@@ -483,9 +483,10 @@ rule Remcos {
 
           strings:
             $remcos = "Remcos" ascii fullword
-            $url = "Breaking-Security.Net" ascii fullword
-            $resource = "SETTINGS" wide fullword
-          condition:  all of them
+            $url1 = "Breaking-Security.Net" ascii fullword
+            $url2 = "BreakingSecurity.Net" ascii fullword
+            $resource = "SETTINGS" ascii wide fullword
+          condition:  1 of ($url*) and $remcos and $resource
 }
 
 rule Quasar {

@@ -29,9 +29,10 @@ remcos_sig = {
     'namespace1' : 'rule Remcos { \
                     strings: \
                        $remcos = "Remcos" ascii fullword \
-                       $url = "Breaking-Security.Net" ascii fullword \
-                       $resource = "SETTINGS" wide fullword \
-                    condition:  all of them}'
+                       $url1 = "Breaking-Security.Net" ascii fullword \
+                       $url2 = "BreakingSecurity.Net" ascii fullword \
+                       $resource = "SETTINGS" ascii wide fullword \
+                    condition: 1 of ($url*) and $remcos and $resource}'
 }
 
 # MZ Header
@@ -98,7 +99,8 @@ idx_list = {
     51: "Unknown51",
     52: "Unknown52",
     53: "Unknown53",
-    54: "Keylog file max size"
+    54: "Keylog file max size",
+    55: "Unknown55",
 }
 
 setup_list = {
