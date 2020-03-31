@@ -421,7 +421,7 @@ rule Agenttesla_type2 {
             $type2db2 = "Unknow database format" wide
             $type2db3 = "SQLite format 3" wide
             $type2db4 = "Berkelet DB" wide
-          condition: 3 of them
+          condition: (uint16(0) == 0x5A4D) and 3 of them
 }
 
 rule Noderat {
