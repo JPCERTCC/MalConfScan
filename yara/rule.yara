@@ -154,7 +154,7 @@ rule Ursnif {
             $f2 = { 35 8F E3 B7 3F }
             $f3 = { 35 0A 60 2E 51 }
 
-         condition: $a1 or ($b1 and 3 of ($c*)) or (5 of ($c*)) or ($b1 and all of ($d*)) or all of ($e*) or all of ($f*)
+          condition: $a1 or ($b1 and 3 of ($c*)) or (5 of ($c*)) or ($b1 and all of ($d*)) or all of ($e*) or all of ($f*)
 }
 
 rule Emotet {
@@ -227,7 +227,7 @@ rule PlugX {
             $enc2 = { 32 5? ?? 81 E? ?? ?? 00 00 2A 5? ?? 89 ?? ?? 32 ?? 2A ?? 32 5? ?? 2A 5? ?? 32 }
             $enc3 = { B? 33 33 33 33 }
             $enc4 = { B? 44 44 44 44 }
-         condition: $v1 at 0 or ($v2a and $v2b and $enc1) or ($v2c and $v2b and $enc1) or ($v2d and $v2b and $enc2) or ($v2d and $v2e and $enc2) or ($v2f and $v2g and $enc3 and $enc4) or ($v2h and $v2g and $enc3 and $enc4)
+          condition: $v1 at 0 or ($v2a and $v2b and $enc1) or ($v2c and $v2b and $enc1) or ($v2d and $v2b and $enc2) or ($v2d and $v2e and $enc2) or ($v2f and $v2g and $enc3 and $enc4) or ($v2h and $v2g and $enc3 and $enc4)
 }
 
 rule Ramnit {
@@ -332,7 +332,7 @@ rule Azorult {
 }
 
 rule PoisonIvy {
-           meta:
+          meta:
             description = "detect PoisonIvy in memory"
             author = "JPCERT/CC Incident Response Group"
             rule_usage = "memory scan"
@@ -347,7 +347,7 @@ rule PoisonIvy {
 }
 
 rule netwire {
-           meta:
+          meta:
             description = "detect netwire in memory"
             author = "JPCERT/CC Incident Response Group"
             rule_usage = "memory scan"
@@ -471,7 +471,8 @@ rule Trickbot {
             $tags2 = "</plugins></servconf>" wide
             $tagl1 = "<slist><sinj>" wide
             $tagl2 = "</sinj></slist>" wide
-          condition: all of ($tagm*) or all of ($tagc*) or all of ($tagi*) or all of ($tags*) or all of ($tagl*)
+            $dllname = { 6C 00 00 00 CC 00 00 00 19 01 00 00 00 00 00 00 1A 01 }
+          condition: all of ($tagm*) or all of ($tagc*) or all of ($tagi*) or all of ($tags*) or all of ($tagl*) or $dllname
 }
 
 rule Remcos {
@@ -501,4 +502,23 @@ rule Quasar {
             $quasarstr2 = "({0}:{1}:{2})" wide
             $class = { 52 00 65 00 73 00 6F 00 75 00 72 00 63 00 65 00 73 00 00 17 69 00 6E 00 66 00 6F 00 72 00 6D 00 61 00 74 00 69 00 6F 00 6E 00 00 80 }
           condition: all of them
+}
+
+rule asyncrat { 
+    meta:
+        description = "detect AsyncRat in memory"
+        author = "JPCERT/CC Incident Response Group"
+        rule_usage = "memory scan"
+        reference = "internal research"
+        hash1 = "1167207bfa1fed44e120dc2c298bd25b7137563fdc9853e8403027b645e52c19" 
+        hash2 = "588c77a3907163c3c6de0e59f4805df41001098a428c226f102ed3b74b14b3cc"
+
+    strings: 
+        $salt = {BF EB 1E 56 FB CD 97 3B B2 19 02 24 30 A5 78 43 00 3D 56 44 D2 1E 62 B9 D4 F1 80 E7 E6 C3 39 41}
+        $b1 = {00 00 00 0D 53 00 48 00 41 00 32 00 35 00 36 00 00}
+        $b2 = {09 50 00 6F 00 6E 00 67 00 00}
+        $s1 = "pastebin" ascii wide nocase 
+        $s2 = "pong" wide
+        $s3 = "Stub.exe" ascii wide
+    condition:  ($salt and (2 of ($s*) or 1 of ($b*))) or (all of ($b*) and 2 of ($s*))
 }
