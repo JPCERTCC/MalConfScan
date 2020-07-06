@@ -509,6 +509,21 @@ rule Quasar {
             $resource = { 52 00 65 00 73 00 6F 00 75 00 72 00 63 00 65 00 73 00 00 17 69 00 6E 00 66 00 6F 00 72 00 6D 00 61 00 74 00 69 00 6F 00 6E 00 00 }
           condition: ((all of ($quasarstr*) or all of ($sql*)) and $resource) or all of ($net*)
 }
+
+rule Elf_plead {
+          meta:
+            description = "ELF_PLEAD"
+            author = "JPCERT/CC Incident Response Group"
+            hash = "f704303f3acc2fd090145d5ee893914734d507bd1e6161f82fb34d45ab4a164b"
+
+          strings:
+            $ioctl = "ioctl TIOCSWINSZ error"
+            $class1 = "CPortForwardManager"
+            $class2 = "CRemoteShell"
+            $class3 = "CFileManager"
+            $lzo = { 81 ?? FF 07 00 00 81 ?? 1F 20 00 00 }
+
+          condition: 3 of them
 }
 
 rule asyncrat { 
@@ -528,4 +543,40 @@ rule asyncrat {
         $s2 = "pong" wide
         $s3 = "Stub.exe" ascii wide
     condition:  ($salt and (2 of ($s*) or 1 of ($b*))) or (all of ($b*) and 2 of ($s*))
+}
+
+rule Wellmess {
+          meta:
+            description = "detect WellMess in memory"
+            author = "JPCERT/CC Incident Response Group"
+            rule_usage = "memory scan"
+            reference = "internal research"
+            hash1 = "0322c4c2d511f73ab55bf3f43b1b0f152188d7146cc67ff497ad275d9dd1c20f" 
+            hash2 = "8749c1495af4fd73ccfc84b32f56f5e78549d81feefb0c1d1c3475a74345f6a8 "
+
+          strings:
+            $botlib1 = "botlib.wellMess" ascii
+            $botlib2 = "botlib.Command" ascii
+            $botlib3 = "botlib.Download" ascii
+            $botlib4 = "botlib.AES_Encrypt" ascii
+            $dotnet1 = "WellMess" ascii
+            $dotnet2 = "<;head;><;title;>" ascii wide
+            $dotnet3 = "<;title;><;service;>" ascii wide
+            $dotnet4 = "AES_Encrypt" ascii
+          condition: (uint16(0) == 0x5A4D) and (all of ($botlib*) or all of ($dotnet*))
+}
+
+rule Elf_wellmess {
+          meta:
+            description = "ELF_Wellmess"
+            author = "JPCERT/CC Incident Response Group"
+            hash = "00654dd07721e7551641f90cba832e98c0acb030e2848e5efc0e1752c067ec07"
+
+          strings:
+            $botlib1 = "botlib.wellMess" ascii
+            $botlib2 = "botlib.Command" ascii
+            $botlib3 = "botlib.Download" ascii
+            $botlib4 = "botlib.AES_Encrypt" ascii
+
+          condition: (uint32(0) == 0x464C457F) and all of ($botlib*)
 }
