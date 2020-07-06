@@ -12,6 +12,8 @@ import volatility.obj as obj
 import volatility.plugins.vadinfo as vadinfo
 import volatility.plugins.procdump as procdump
 import volatility.plugins.malware.malfind as malfind
+import volatility.plugins.linux.pslist as linux_pslist
+import volatility.plugins.linux.linux_yarascan as linux_yarascan
 import re
 import os
 import pefile
@@ -39,7 +41,7 @@ class malconfScan(taskmods.DllList):
 
     @staticmethod
     def is_valid_profile(profile):
-        return (profile.metadata.get('os', 'unknown') == 'windows'), profile.metadata.get('memory_model', '32bit')
+        return profile.metadata.get('os', 'unknown'), profile.metadata.get('memory_model', '32bit')
 
     def get_vad_base(self, task, address):
         for vad in task.VadRoot.traverse():
@@ -56,36 +58,39 @@ class malconfScan(taskmods.DllList):
         addr_space = utils.load_as(self._config)
 
         osversion, memory_model = self.is_valid_profile(addr_space.profile)
-        if not osversion:
-            debug.error("This command does not support the selected profile.")
         base = os.path.dirname(os.path.abspath(__file__))
         rules = yara.compile(base + "/yara/rule.yara")
+        if osversion == "windows":
 
-        for task in self.filter_tasks(tasks.pslist(addr_space)):
-            scanner = malfind.VadYaraScanner(task=task, rules=rules)
+            for task in self.filter_tasks(tasks.pslist(addr_space)):
+                scanner = malfind.VadYaraScanner(task=task, rules=rules)
 
-            for hit, address in scanner.scan():
+                for hit, address in scanner.scan():
 
-                vad_base_addr, end = self.get_vad_base(task, address)
+                    vad_base_addr, end = self.get_vad_base(task, address)
 
-                malname = str(hit).lower()
-                if str(hit) in ["Himawari", "Lavender", "Armadill", "zark20rk"]:
-                    malname = "redleaves"
-                if str(hit) in "TSC_Loader":
-                    malname = "tscookie"
-                if "Agenttesla" in str(hit):
-                    malname = "agenttesla"
+                    malname = str(hit).lower()
+                    if str(hit) in ["Himawari", "Lavender", "Armadill", "zark20rk"]:
+                        malname = "redleaves"
+                    if str(hit) in "TSC_Loader":
+                        malname = "tscookie"
+                    if "Agenttesla" in str(hit):
+                        malname = "agenttesla"
 
-                try:
-                    module = import_module("volatility.plugins.malware.utils.{name}scan".format(name=malname))
-                    module_cls = getattr(module, malname + "Config")
-                    instance = module_cls(self._config)
-                except:
-                    debug.error("Can't loading module volatility.plugins.malware.utils.{name}scan".format(name=malname))
+                    try:
+                        module = import_module("volatility.plugins.malware.utils.{name}scan".format(name=malname))
+                        module_cls = getattr(module, malname + "Config")
+                        instance = module_cls(self._config)
+                    except:
+                        debug.error("Can't loading module volatility.plugins.malware.utils.{name}scan".format(name=malname))
 
-                for task, vad_base_addr, end, hit, memory_model, config_data in instance.calculate():
-                    yield task, vad_base_addr, end, hit, memory_model, config_data
-                break
+                    for task, vad_base_addr, end, hit, memory_model, config_data in instance.calculate():
+                        yield task, vad_base_addr, end, hit, memory_model, config_data
+                    break
+        elif osversion == "linux":
+            debug.error("Please use linux_malconfscan.")
+        else:
+            debug.error("This command does not support the selected profile.")
 
     def render_text(self, outfd, data):
 
@@ -109,6 +114,93 @@ class malconfScan(taskmods.DllList):
                 for id, param in p_data.items():
                     outfd.write("{0:<22}: {1}\n".format(id, param))
 
+class linux_malconfScan(linux_pslist.linux_pslist):
+    """Detect infected processes and parse malware configuration for Linux"""
+
+    @staticmethod
+    def is_valid_profile(profile):
+        return profile.metadata.get('os', 'unknown'), profile.metadata.get('memory_model', '32bit')
+
+    def get_vma_base(self, task, address):
+        for vma in task.get_proc_maps():
+            if address >= vma.vm_start and address < vma.vm_end:
+                return vma.vm_start, vma.vm_end
+
+        return None
+
+    def filter_tasks(self):
+        tasks = linux_pslist.linux_pslist(self._config).calculate()
+
+        if self._config.PID is not None:
+            try:
+                pidlist = [int(p) for p in self._config.PID.split(',')]
+            except ValueError:
+                debug.error("Invalid PID {0}".format(self._config.PID))
+
+            pids = [t for t in tasks if t.pid in pidlist]
+            if len(pids) == 0:
+                debug.error("Cannot find PID {0}. If its terminated or unlinked, use psscan and then supply --offset=OFFSET".format(self._config.PID))
+            return pids
+
+        return tasks
+
+    def calculate(self):
+
+        if not has_yara:
+            debug.error("Yara must be installed for this plugin")
+
+        addr_space = utils.load_as(self._config)
+
+        osversion, memory_model = self.is_valid_profile(addr_space.profile)
+        base = os.path.dirname(os.path.abspath(__file__))
+        rules = yara.compile(base + "/yara/rule.yara")
+
+        if osversion == "linux":
+            tasks = self.filter_tasks()
+            for task in tasks:
+                scanner = linux_yarascan.VmaYaraScanner(task = task, rules = rules)
+                for hit, address in scanner.scan():
+
+                    start, end = self.get_vma_base(task, address)
+
+                    malname = str(hit).lower()
+
+                    try:
+                        module = import_module("volatility.plugins.malware.utils.{name}scan".format(name=malname))
+                        module_cls = getattr(module, malname + "Config")
+                        instance = module_cls(self._config)
+                    except:
+                        debug.error("Can't loading module volatility.plugins.malware.utils.{name}scan".format(name=malname))
+
+                    for task, start, end, hit, memory_model, config_data in instance.calculate():
+                        yield task, start, end, hit, memory_model, config_data
+                    break
+        elif osversion == "windows":
+            debug.error("Please use malconfscan.")
+        else:
+            debug.error("This command does not support the selected profile.")
+
+    def render_text(self, outfd, data):
+
+        delim = '-' * 70
+
+        outfd.write("[+] Searching memory by Yara rules.\n")
+
+        for task, start, end, malname, memory_model, config_data in data:
+            outfd.write("[+] Detect malware by Yara rules.\n")
+            outfd.write("[+]   Process Name      : {0}\n".format(task.comm))
+            outfd.write("[+]   Process ID        : {0}\n".format(task.pid))
+            outfd.write("[+]   Malware name      : {0}\n".format(malname))
+            outfd.write("[+]   Address           : 0x{0:X}\n".format(start))
+            outfd.write("[+]   Size              : 0x{0:X}\n".format(end - start))
+
+            outfd.write("{0}\n".format(delim))
+            outfd.write("Process: {0} ({1})\n\n".format(task.comm, task.pid))
+
+            outfd.write("[Config Info]\n")
+            for p_data in config_data:
+                for id, param in p_data.items():
+                    outfd.write("{0:<22}: {1}\n".format(id, param))
 
 class malstrScan(procdump.ProcDump, malfind.Malfind, vadinfo.VADDump):
     """Search strings with malicious space"""
