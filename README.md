@@ -35,6 +35,9 @@
   - [x] TrickBot
   - [x] Remcos
   - [x] QuasarRAT
+  - [x] AsyncRAT
+  - [x] WellMess (Windows/Linux)
+  - [x] ELF_PLEAD
   - [ ] Pony
 
 ## Additional Analysis
@@ -44,11 +47,16 @@
   If you want to know more details, please check [the MalConfScan wiki](https://github.com/JPCERTCC/MalConfScan/wiki).
 
 ## How to Use
- MalConfScan has two functions **malconfscan** and **malstrscan**.
+ MalConfScan has two functions **malconfscan**, **linux_malconfscan** and **malstrscan**.
 
 ### Export known malware configuration
 ```
 $ python vol.py malconfscan -f images.mem --profile=Win7SP1x64
+```
+
+### Export known malware configuration for Linux
+```
+$ python vol.py linux_malconfscan -f images.mem --profile=LinuxDebianx64
 ```
 
 ### List the referenced strings
