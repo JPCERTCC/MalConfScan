@@ -31,6 +31,10 @@ delim = '-' * 70
 class baseConfig(interfaces.plugins.PluginInterface):
     """Base class for MalConfScan utils."""
 
+    def __init__(self, *args, **kwargs) -> None:
+        self._target_proc = None
+        super().__init__(*args, **kwargs)
+
     @classmethod
     def get_requirements(cls):
         # Since we're calling the plugin, make sure we have the plugin's requirements
@@ -38,9 +42,10 @@ class baseConfig(interfaces.plugins.PluginInterface):
                                                          description='Memory layer for the kernel',
                                                          architectures=["Intel32", "Intel64"]),
                 requirements.SymbolTableRequirement(name="nt_symbols", description="Windows kernel symbols"),
-                requirements.IntRequirement(name='pid',
-                                            description="Process ID to include (all other processes are excluded)",
-                                            optional=True),
+                requirements.ListRequirement(name='pid',
+                                             description='Filter on specific process IDs',
+                                             element_type=int,
+                                             optional=True),
                 requirements.PluginRequirement(name='pslist', plugin=pslist.PsList, version=(1, 0, 0)),
                 requirements.PluginRequirement(name='vaddump', plugin=vaddump.VadDump, version=(1, 1, 0))
                 ]
@@ -61,7 +66,7 @@ class baseConfig(interfaces.plugins.PluginInterface):
             yield (start, end - start)
 
     @staticmethod
-    def get_vad_base(task: interfaces.objects.ObjectInterface, address: int):
+    def get_vad_base(task: interfaces.objects.ObjectInterface, address: int) -> interfaces.objects.ObjectInterface:
         """Get the VAD address block which contains the second argument address."""
         for vad in task.get_vad_root().traverse():
             end = vad.get_end()
@@ -92,7 +97,7 @@ class baseConfig(interfaces.plugins.PluginInterface):
     def main_process(self) -> (int, str, str, int, int, int, OrderedDict):
         layer = self.context.layers[self.config['primary']]
         rules = yara.compile(sources=self._yara_sig)  # rename signature name
-        filter_func = pslist.PsList.create_pid_filter([self.config.get('pid', None)])
+        filter_func = pslist.PsList.create_pid_filter(self.config.get('pid', None))
 
         if layer.metadata.get('os', None) in ['Windows', 'Unknown']:
 
@@ -112,13 +117,14 @@ class baseConfig(interfaces.plugins.PluginInterface):
                     image_filename = task.ImageFileName.cast("string", max_length=task.ImageFileName.vol.count, errors='replace')
                     pid = task.UniqueProcessId
                     data = vaddump.VadDump.vad_dump(context=self.context, layer_name=task.add_process_layer(), vad=vad)
+                    self._target_proc = task
                     config_data = self.extract_config(data, hit, vad_base_addr)
                     yield (pid, image_filename, hit, vad_base_addr, end, config_data)
                     break
 
     def extract_config(self, data: bytes, malname: str, vad_base_addr: int) -> OrderedDict:
         """[INFO]: this method would be overrided by each scanner"""
-        return OrderedDict()
+        raise NotImplementedError("extract_config method has not been implemented.")
 
     def render_cli_text(self, pid, image_filename, malname, start, end, config_data) -> None:
         """CLI render method for malconfscan."""
