@@ -29,14 +29,14 @@
 - [x] Lokibot
 - [ ] Bebloh (Shiotob/URLZone)
 - [ ] AZORult
-- [ ] NanoCore RAT
+- [x] NanoCore RAT
 - [ ] AgentTesla
 - [ ] FormBook
 - [ ] NodeRAT (https://blogs.jpcert.or.jp/ja/2019/02/tick-activity.html)
 - [ ] njRAT
 - [ ] TrickBot
 - [ ] Remcos
-- [ ] QuasarRAT
+- [x] QuasarRAT
 - [x] AsyncRAT
 - [ ] WellMess (Windows/Linux)
 - [ ] ELF_PLEAD
