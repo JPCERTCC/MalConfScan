@@ -16,7 +16,7 @@
 - [ ] Emotet
 - [ ] Smoke Loader
 - [ ] PoisonIvy
-- [ ] CobaltStrike
+- [x] CobaltStrike
 - [ ] NetWire
 - [ ] PlugX
 - [x] RedLeaves / Himawari / Lavender / Armadill / zark20rk
