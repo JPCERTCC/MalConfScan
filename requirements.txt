@@ -4,3 +4,4 @@ yara-python
 pefile
 pbkdf2
 distorm3
+tqdm
