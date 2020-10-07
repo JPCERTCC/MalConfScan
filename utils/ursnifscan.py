@@ -243,7 +243,7 @@ class ursnifConfig(taskmods.DllList):
         if not has_yara:
             debug.error("Yara must be installed for this plugin")
 
-        if not has_yara:
+        if not has_aplib:
             debug.error("Aplib must be installed for this plugin")
 
         addr_space = utils.load_as(self._config)
