@@ -1,0 +1,3 @@
+files:
+    accept:
+        - "yara/rule.yara"
